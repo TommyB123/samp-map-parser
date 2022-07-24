@@ -114,7 +114,6 @@ stock LoadMap(mapname[])
 	new map[MAP_DATA], remove[REMOVE_DATA], mapindex;
 	strreplace(mapname, MAP_FILE_EXTENSION, "", false, 0, -1, MAX_MAP_NAME);
 	format(map[MapName], MAX_MAP_NAME, mapname);
-	print(mapname);
 	map[MapObjects] = list_new();
 	map[RemovedBuildings] = list_new();
 	mapindex = pool_add_arr(Maps, map);
