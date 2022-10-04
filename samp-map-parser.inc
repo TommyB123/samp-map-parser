@@ -6,7 +6,7 @@
 #include <a_samp>
 #include <streamer>
 #include <PawnPlus>
-#include <FileManager>
+#include <filemanager>
 #include <sscanf2>
 
 //resize STRLIB_RETURN_SIZE if strlib has been previously included. we need all the buffer we can get
