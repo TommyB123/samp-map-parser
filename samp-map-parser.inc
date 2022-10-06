@@ -39,6 +39,10 @@
 	#define MAP_FILE_EXTENSION ".txt"
 #endif
 
+#if !defined PREVENT_REMOVE_BUILDING_CRASH
+	#define PREVENT_REMOVE_BUILDING_CRASH 1
+#endif
+
 #if !defined isnull
 	#define isnull(%1) ((!(%1[0])) || (((%1[0]) == '\1') && (!(%1[1]))))
 #endif
@@ -62,10 +66,18 @@ static enum _:MAP_DATA
 static Pool:Maps;
 static bool:ProcessingMaps;
 
+#if PREVENT_REMOVE_BUILDING_CRASH == 1
+static PlayerRemovedBuildings[MAX_PLAYERS];
+#endif
+
 forward OnMapLoaded(mapid, const mapname[], List:objects);
 
 public OnPlayerConnect(playerid)
 {
+	#if PREVENT_REMOVE_BUILDING_CRASH == 1
+		PlayerRemovedBuildings[playerid] = 0;
+	#endif
+
 	if(!IsPlayerNPC(playerid)) ProcessRemovedBuildings(playerid);
 
 	#if defined MAP_OnPlayerConnect
@@ -191,7 +203,7 @@ stock LoadMap(mapname[])
 		}
 		CallLocalFunction("OnMapLoaded", "isi", mapindex, mapname, _:map[MapObjects]);
 	}
-	
+
 	return mapindex;
 }
 
@@ -442,8 +454,19 @@ static stock RemoveNewBuildings(mapid)
 
 static stock ProcessRemovedBuildings(playerid)
 {
+	#if PREVENT_REMOVE_BUILDING_CRASH == 1
+		new bool:endremove = false;
+	#endif
+
 	for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
 	{
+		#if PREVENT_REMOVE_BUILDING_CRASH == 1
+			if(endremove)
+			{
+				break;
+			}
+		#endif
+
 		iter_get_arr(i, map);
 		if(list_valid(map[RemovedBuildings]))
 		{
@@ -451,6 +474,14 @@ static stock ProcessRemovedBuildings(playerid)
 			{
 				iter_get_arr(b, remove);
 				RemoveBuildingForPlayer(playerid, remove[removemodel], remove[removex], remove[removey], remove[removez], remove[removeradius]);
+				#if PREVENT_REMOVE_BUILDING_CRASH == 1
+					++PlayerRemovedBuildings[playerid];
+					if(PlayerRemovedBuildings[playerid] >= 950)
+					{
+						endremove = true;
+						break;
+					}
+				#endif
 			}
 		}
 	}
