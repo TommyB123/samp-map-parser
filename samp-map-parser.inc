@@ -8,18 +8,6 @@
 #include <PawnPlus>
 #include <filemanager>
 #include <sscanf2>
-
-//resize STRLIB_RETURN_SIZE if strlib has been previously included. we need all the buffer we can get
-#if defined STRLIB_RETURN_SIZE
-	#if STRLIB_RETURN_SIZE < 256
-		#undef STRLIB_RETURN_SIZE
-		#define STRLIB_RETURN_SIZE 256
-	#endif
-#endif
-
-#if !defined STRLIB_RETURN_SIZE
-	#define STRLIB_RETURN_SIZE 256
-#endif
 #include <strlib>
 
 #if !defined MAX_MAP_NAME
@@ -130,8 +118,12 @@ stock LoadMap(mapname[])
 	map[RemovedBuildings] = list_new();
 	mapindex = pool_add_arr(Maps, map);
 
+	//string for formatting
+	new templine[256];
+
 	//file variables
-	new File:f = f_open(sprintf("%s%s%s", MAP_FILE_DIRECTORY, mapname, MAP_FILE_EXTENSION), "r"), templine[256];
+	format(templine, sizeof(templine), "%s%s%s", MAP_FILE_DIRECTORY, mapname, MAP_FILE_EXTENSION);
+	new File:f = f_open(templine, "r");
 
 	//object variables
 	new STREAMER_TAG_OBJECT:tempobj, model, Float:x, Float:y, Float:z, Float:rx, Float:ry, Float:rz, world, interior, playerid, Float:streamdist, Float:drawdist, areaid, priority;
@@ -333,12 +325,14 @@ stock GetMapList(String:string, bool:order = false)
 
 stock IsValidMapFile(const mapname[])
 {
-	return (file_exists(sprintf("%s%s%s", MAP_FILE_DIRECTORY, mapname, MAP_FILE_EXTENSION)));
+	new file[256];
+	format(file, sizeof(file), "%s%s%s", MAP_FILE_DIRECTORY, mapname, MAP_FILE_EXTENSION);
+	return (file_exists(file));
 }
 
 stock ExportMap(mapid)
 {
-	new mapname[MAX_MAP_NAME];
+	new mapname[MAX_MAP_NAME], templine[256];
 	format(mapname, MAX_MAP_NAME, "%s%s", GetMapName(mapid), MAP_FILE_EXTENSION);
 	if(file_exists(mapname)) file_delete(mapname);
 	file_create(mapname);
@@ -352,7 +346,8 @@ stock ExportMap(mapid)
 	for(new Iter:i = list_iter(map[RemovedBuildings]); iter_inside(i); iter_move_next(i))
 	{
 		iter_get_arr(i, remove);
-		f_write(f, sprintf("RemoveBuildingForPlayer(playerid, %i, %f, %f, %f, %.2f);\n", remove[removemodel], remove[removex], remove[removey], remove[removez], remove[removeradius]));
+		format(templine, sizeof(templine), "RemoveBuildingForPlayer(playerid, %i, %f, %f, %f, %.2f);\n", remove[removemodel], remove[removex], remove[removey], remove[removez], remove[removeradius]);
+		f_write(f, templine);
 	}
 
 	//write all objects
@@ -386,8 +381,9 @@ stock ExportMap(mapid)
 			if(matused)
 			{
 				if(k != 0) continue;
-				f_write(f, sprintf("%sCreateDynamicObject(%i, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %i, %i, %i, %.2f, %.2f);\n", matused ? "tempobject = " : "",
-					model, x, y, z, rx, ry, rz, world, interior, player, streamdist, drawdist));
+				format(templine, sizeof(templine), "%sCreateDynamicObject(%i, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %i, %i, %i, %.2f, %.2f);\n",
+					matused ? "tempobject = " : "", model, x, y, z, rx, ry, rz, world, interior, player, streamdist, drawdist);
+				f_write(f, templine);
 				for(new idx = 0; idx < 16; idx++)
 				{
 					if(IsDynamicObjectMaterialUsed(tempobject, idx))
@@ -395,7 +391,8 @@ stock ExportMap(mapid)
 						new material_model, material_txd[64], material_texture[64], material_color;
 						GetDynamicObjectMaterial(tempobject, idx, material_model, material_txd, material_texture, material_color);
 
-						f_write(f, sprintf("SetDynamicObjectMaterial(tempobject, %i, %i, \"%s\", \"%s\", 0x%08x);\n", idx, material_model, material_txd, material_texture, material_color));
+						format(templine, sizeof(templine), "SetDynamicObjectMaterial(tempobject, %i, %i, \"%s\", \"%s\", 0x%08x);\n", idx, material_model, material_txd, material_texture, material_color);
+						f_write(f, templine);
 					}
 					if(IsDynamicObjectMaterialTextUsed(tempobject, idx))
 					{
@@ -403,13 +400,18 @@ stock ExportMap(mapid)
 						GetDynamicObjectMaterialText(tempobject, idx, material_text, material_size, material_font, material_fontsize, material_bold, material_fontcolor, material_bgcolor, material_textalign);
 						strreplace(material_text, "\n", "~N~");
 
-						f_write(f, sprintf("SetDynamicObjectMaterialText(tempobject, %i, \"%s\", %i, \"%s\", %i, %i, 0x%08x, 0x%08x, %i);\n",
-							idx, material_text, material_size, material_font, material_fontsize, material_bold, material_fontcolor, material_bgcolor, material_textalign));
+						format(templine, sizeof(templine), "SetDynamicObjectMaterialText(tempobject, %i, \"%s\", %i, \"%s\", %i, %i, 0x%08x, 0x%08x, %i);\n",
+							idx, material_text, material_size, material_font, material_fontsize, material_bold, material_fontcolor, material_bgcolor, material_textalign);
+						f_write(f, templine);
 					}
 				}
 			}
-			if(k == 1) f_write(f, sprintf("%sCreateDynamicObject(%i, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %i, %i, %i, %.2f, %.2f);\n", matused ? "tempobject = " : "",
-				model, x, y, z, rx, ry, rz, world, interior, player, streamdist, drawdist));
+			if(k == 1)
+			{
+				format(templine, sizeof(templine), "%sCreateDynamicObject(%i, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %i, %i, %i, %.2f, %.2f);\n",
+					matused ? "tempobject = " : "", model, x, y, z, rx, ry, rz, world, interior, player, streamdist, drawdist);
+				f_write(f, templine);
+			}
 		}
 	}
 
