@@ -43,12 +43,24 @@ class samp_object():
     ry: float
     rz: float
     worldid: int
+    interior: int
+    player: int
+    streamdist: float
+    drawdist: float
+    areaid: int
+    priority: int
     materials: list
     materialtext: list
     isdoor: bool
 
 
 newworldid = -1
+interior = -1
+player = -1
+streamdist = 300.0
+drawdist = 300.0
+areaid = -1
+priority = 0
 mapname = ""
 
 
@@ -78,6 +90,13 @@ def convert():
             object.ry = float(params[5])
             object.rz = float(params[6])
             object.worldid = newworldid if newworldid != -5 else (-1 if params[7] is None else int(params[7]))
+
+            object.interior = interior if len(params) <= 8 else int(params[8])
+            object.player = interior if len(params) <= 9 else int(params[9])
+            object.streamdist = streamdist if len(params) <= 10 else float(params[10])
+            object.drawdist = drawdist if len(params) <= 11 else float(params[11])
+            object.areaid = areaid if len(params) <= 12 else int(params[12])
+            object.priority = priority if len(params) <= 13 else int(params[13])
 
             objects.append(object)
         elif line.find('SetDynamicObjectMaterial(') != -1:
@@ -161,7 +180,7 @@ def convert():
         output.write(f'rmv {building.remove_modelid} {building.remove_x:.6f} {building.remove_y:.6f} {building.remove_z:.6f} {building.remove_radius:.2f}\n')
 
     for object in objects:
-        output.write(f'{object.modelid} {object.x:.6f} {object.y:.6f} {object.z:.6f} {object.rx:.6f} {object.ry:.6f} {object.rz:.6f} {object.worldid}\n')
+        output.write(f'{object.modelid} {object.x:.6f} {object.y:.6f} {object.z:.6f} {object.rx:.6f} {object.ry:.6f} {object.rz:.6f} {object.worldid} {object.interior} {object.player} {object.streamdist:.6f} {object.drawdist:.6f} {object.areaid} {object.priority}\n')
 
         if len(object.materials) > 0:
             for material in object.materials:
