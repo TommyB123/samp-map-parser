@@ -1,4 +1,5 @@
 import os
+import re 
 path = os.getcwd()
 
 
@@ -63,10 +64,8 @@ def convert():
 
     for line in input:
         if line.find('CreateDynamicObject(') != -1:
-            line = line.replace('tmpobjid = CreateDynamicObject(', '')
-            line = line.replace('CreateDynamicObject(', '')
-            line = line.replace(');\n', '')
-            line = line.replace('); \n', '')
+            line = re.sub('^.*CreateDynamicObject\(', '', line)
+            line = re.sub('\);(w+)?', '', line)
             params = line.split(', ')
 
             object = samp_object()
@@ -77,13 +76,15 @@ def convert():
             object.rx = float(params[4])
             object.ry = float(params[5])
             object.rz = float(params[6])
-            object.worldid = newworldid if newworldid != -5 else (-1 if params[7] is None else int(params[7]))
+            try:
+                object.worldid = newworldid if newworldid != -5 else (-1 if params[7] is None else int(params[7]))
+            except IndexError:
+                object.worldid = newworldid if newworldid != -5 else -1
 
             objects.append(object)
         elif line.find('SetDynamicObjectMaterial(') != -1:
-            line = line.replace('SetDynamicObjectMaterial(', '')
-            line = line.replace(');\n', '')
-            line = line.replace('tmpobjid,', '')
+            line = re.sub('^.*SetDynamicObjectMaterial\(([^,]+),', '', line)
+            line = re.sub('\);(w+)?', '', line)
             params = line.split(', ')
 
             material = samp_object_material()
@@ -111,9 +112,8 @@ def convert():
             object = objects[len(objects) - 1]
             object.materials.append(material)
         elif line.find('SetDynamicObjectMaterialText(') != -1:
-            line = line.replace('SetDynamicObjectMaterialText(', '')
-            line = line.replace(');\n', '')
-            line = line.replace('tmpobjid,', '')
+            line = re.sub('^.*SetDynamicObjectMaterialText\(([^,]+),', '', line)
+            line = re.sub('\);(w+)?', '', line)
             params = line.split(', ')
 
             if len(params) != 9:
