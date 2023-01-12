@@ -469,6 +469,8 @@ static stock ProcessRemovedBuildings(playerid)
 		new bool:endremove = false;
 	#endif
 
+	if(!pool_valid(Maps)) Maps = pool_new();
+
 	for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
 	{
 		#if PREVENT_REMOVE_BUILDING_CRASH == 1
