@@ -292,6 +292,8 @@ stock GetMapCount()
 
 stock GetMapList(String:string, bool:order = false)
 {
+	if(!pool_valid(Maps)) Maps = pool_new();
+
 	str_append_format(string, "Slot\tMap Name\tObjects\n");
 	if(order)
 	{
@@ -332,6 +334,13 @@ stock IsValidMapFile(const mapname[])
 
 stock ExportMap(mapid)
 {
+	if(!pool_valid(Maps)) Maps = pool_new();
+
+	if(!pool_has(Maps, mapid)) {
+		printf("[MAP PARSER] Unable to export map id %d. Invalid id.", id);
+		return false;
+	}
+	
 	new mapname[MAX_MAP_NAME], templine[256];
 	format(mapname, MAX_MAP_NAME, "%s%s", GetMapName(mapid), MAP_FILE_EXTENSION);
 	if(file_exists(mapname)) file_delete(mapname);
@@ -459,6 +468,8 @@ static stock ProcessRemovedBuildings(playerid)
 	#if PREVENT_REMOVE_BUILDING_CRASH == 1
 		new bool:endremove = false;
 	#endif
+
+	if(!pool_valid(Maps)) Maps = pool_new();
 
 	for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
 	{
