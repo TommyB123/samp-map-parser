@@ -35,6 +35,22 @@
 	#define isnull(%1) ((!(%1[0])) || (((%1[0]) == '\1') && (!(%1[1]))))
 #endif
 
+#if !defined IsNumeric
+	IsNumeric(const string[])
+	{
+		new length = strlen(string);
+		if(length == 0) return false;
+
+		for(new i = 0; i < length; i++)
+		{
+			if((string[i] > '9' || string[i] < '0' && string[i] != '-' && string[i] != '+') || (string[i] == '-' && i != 0) || (string[i] == '+' && i != 0)) return false;
+		}
+
+		if(length == 1 && (string[0] == '-' || string[0] == '+')) return false;
+		return true;
+	}
+#endif
+
 static enum _:REMOVE_DATA
 {
 	removemodel,
@@ -77,8 +93,11 @@ public OnPlayerConnect(playerid)
 
 stock ProcessMaps()
 {
-	if(!pool_valid(Maps)) Maps = pool_new();
-	pool_set_ordered(Maps, true);
+	if(!pool_valid(Maps))
+	{
+		Maps = pool_new();
+		pool_set_ordered(Maps, true);
+	}
 
 	if(!dir_exists(MAP_FILE_DIRECTORY))
 	{
@@ -111,12 +130,21 @@ stock LoadMap(mapname[])
 {
 	if(strlen(mapname) > MAX_MAP_NAME) return printf("[MAP PARSER] Map name '%s' is too long.", mapname);
 
-	new map[MAP_DATA], remove[REMOVE_DATA], mapindex;
+	new map[MAP_DATA];
 	strreplace(mapname, MAP_FILE_EXTENSION, "", false, 0, -1, MAX_MAP_NAME);
 	format(map[MapName], MAX_MAP_NAME, mapname);
+
+	if(GetMapIDFromName(map[MapName]) != INVALID_MAP_ID) return printf("[MAP PARSER] Attempted to load map '%s' while it was already loaded.", mapname);
+
+	if(!pool_valid(Maps))
+	{
+		Maps = pool_new();
+		pool_set_ordered(Maps, true);
+	}
+
 	map[MapObjects] = list_new();
 	map[RemovedBuildings] = list_new();
-	mapindex = pool_add_arr(Maps, map);
+	new mapindex = pool_add_arr(Maps, map);
 
 	//string for formatting
 	new templine[256];
@@ -136,6 +164,9 @@ stock LoadMap(mapname[])
 
 	//streamer extra ID array
 	new mapobject[2];
+
+	//building removal data
+	new remove[REMOVE_DATA];
 
 	while(f_read(f, templine))
 	{
@@ -201,7 +232,8 @@ stock LoadMap(mapname[])
 
 stock UnloadMap(mapid)
 {
-	if(!pool_has(Maps, mapid)) return true;
+	if(!pool_valid(Maps)) return true;
+	if(mapid < 0 || !pool_has(Maps, mapid)) return true;
 
 	new map[MAP_DATA];
 	pool_get_arr(Maps, mapid, map);
@@ -221,25 +253,28 @@ stock UnloadMap(mapid)
 
 stock ReprocessMaps()
 {
-	for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_erase(i))
+	if(pool_valid(Maps) && pool_size(Maps))
 	{
-		iter_get_arr(i, map);
-		for(new Iter:m = list_iter(map[MapObjects]); iter_inside(m); iter_move_next(m))
+		for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_erase(i))
 		{
-			DestroyDynamicObject(STREAMER_TAG_OBJECT:iter_get(m));
+			iter_get_arr(i, map);
+			for(new Iter:m = list_iter(map[MapObjects]); iter_inside(m); iter_move_next(m))
+			{
+				DestroyDynamicObject(STREAMER_TAG_OBJECT:iter_get(m));
+			}
+			list_delete(map[MapObjects]);
+			list_delete(map[RemovedBuildings]);
 		}
-		list_delete(map[MapObjects]);
-		list_delete(map[RemovedBuildings]);
 	}
 
 	ProcessMaps();
 	return true;
 }
 
-stock GetMapName(mapid)
+stock GetMapNameFromID(mapid)
 {
 	new mapname[MAX_MAP_NAME];
-	if(!pool_has(Maps, mapid))
+	if(!pool_valid(Maps) || mapid < 0 || !pool_has(Maps, mapid))
 	{
 		format(mapname, sizeof(mapname), "Invalid map.");
 	}
@@ -252,11 +287,16 @@ stock GetMapName(mapid)
 	return mapname;
 }
 
-stock GetMapID(const name[])
+stock GetMapIDFromName(const name[])
 {
-	if(IsNumeric(name) && pool_has(Maps, strval(name)))
+	if(IsNumeric(name))
 	{
-		return strval(name);
+		new mapid = strval(name);
+		if(mapid >= 0 && pool_has(Maps, mapid))
+		{
+			return mapid;
+		}
+		else return INVALID_MAP_ID;
 	}
 	else
 	{
@@ -287,12 +327,23 @@ stock GetMapIDFromObject(STREAMER_TAG_OBJECT:objectid)
 
 stock GetMapCount()
 {
-	return pool_size(Maps);
+	if(pool_valid(Maps))
+	{
+		return pool_size(Maps);
+	}
+	else
+	{
+		return -1;
+	}
 }
 
 stock GetMapList(String:string, bool:order = false)
 {
-	if(!pool_valid(Maps)) Maps = pool_new();
+	if(!pool_valid(Maps))
+	{
+		print("[MAP PARSER] Could not format map list because no maps are loaded.");
+		return false;
+	}
 
 	str_append_format(string, "Slot\tMap Name\tObjects\n");
 	if(order)
@@ -310,7 +361,7 @@ stock GetMapList(String:string, bool:order = false)
 		for(new Iter:i = list_iter(maplist); iter_inside(i); iter_move_next(i))
 		{
 			iter_get_arr(i, mapinfo);
-			str_append_format(string, "%i\t%s\t%i\n", mapinfo[0], GetMapName(mapinfo[0]), mapinfo[1]);
+			str_append_format(string, "%i\t%s\t%i\n", mapinfo[0], GetMapNameFromID(mapinfo[0]), mapinfo[1]);
 		}
 		list_delete(maplist);
 	}
@@ -334,15 +385,20 @@ stock IsValidMapFile(const mapname[])
 
 stock ExportMap(mapid)
 {
-	if(!pool_valid(Maps)) Maps = pool_new();
-
-	if(!pool_has(Maps, mapid)) {
-		printf("[MAP PARSER] Unable to export map id %d. Invalid id.", id);
+	if(!pool_valid(Maps))
+	{
+		printf("[MAP PARSER] Unable to export map %i due to no maps currently being loaded.", mapid);
 		return false;
 	}
-	
+
+	if(!pool_has(Maps, mapid))
+	{
+		printf("[MAP PARSER] Unable to export map ID %i. Invalid ID.", mapid);
+		return false;
+	}
+
 	new mapname[MAX_MAP_NAME], templine[256];
-	format(mapname, MAX_MAP_NAME, "%s%s", GetMapName(mapid), MAP_FILE_EXTENSION);
+	format(mapname, MAX_MAP_NAME, "%s%s", GetMapNameFromID(mapid), MAP_FILE_EXTENSION);
 	if(file_exists(mapname)) file_delete(mapname);
 	file_create(mapname);
 
@@ -430,6 +486,8 @@ stock ExportMap(mapid)
 
 stock MoveMapObjects(mapid, Float:xoffset, Float:yoffset, Float:zoffset)
 {
+	if(!pool_valid(Maps) || !pool_size(Maps) || mapid < 0 || !pool_has(Maps, mapid)) return false;
+
 	for(new Iter:i = list_iter(List:pool_get(Maps, mapid, MapObjects)), Float:x, Float:y, Float:z, STREAMER_TAG_OBJECT:objectid; iter_inside(i); iter_move_next(i))
 	{
 		objectid = STREAMER_TAG_OBJECT:iter_get(i);
@@ -438,11 +496,12 @@ stock MoveMapObjects(mapid, Float:xoffset, Float:yoffset, Float:zoffset)
 		GetDynamicObjectPos(objectid, x, y, z);
 		SetDynamicObjectPos(objectid, x + xoffset, y + yoffset, z + zoffset);
 	}
+	return true;
 }
 
 static stock RemoveNewBuildings(mapid)
 {
-	if(pool_has(Maps, mapid))
+	if(pool_valid(Maps) && mapid >= 0 && pool_has(Maps, mapid))
 	{
 		new List:buildings = List:pool_get(Maps, mapid, RemovedBuildings);
 		if(list_valid(buildings))
@@ -465,11 +524,11 @@ static stock RemoveNewBuildings(mapid)
 
 static stock ProcessRemovedBuildings(playerid)
 {
+	if(!pool_valid(Maps) || !pool_size(Maps)) return false;
+
 	#if PREVENT_REMOVE_BUILDING_CRASH == 1
 		new bool:endremove = false;
 	#endif
-
-	if(!pool_valid(Maps)) Maps = pool_new();
 
 	for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
 	{
@@ -504,10 +563,13 @@ static stock ProcessRemovedBuildings(playerid)
 static stock CountMapObjects()
 {
 	new count;
-	for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
+	if(pool_valid(Maps) && pool_size(Maps))
 	{
-		iter_get_arr(i, map);
-		count += list_size(map[MapObjects]);
+		for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
+		{
+			iter_get_arr(i, map);
+			count += list_size(map[MapObjects]);
+		}
 	}
 	return count;
 }
@@ -515,12 +577,15 @@ static stock CountMapObjects()
 static stock CountRemovedBuildings()
 {
 	new count;
-	for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
+	if(pool_valid(Maps) && pool_size(Maps))
 	{
-		iter_get_arr(i, map);
-		if(list_valid(map[RemovedBuildings]))
+		for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
 		{
-			count += list_size(map[RemovedBuildings]);
+			iter_get_arr(i, map);
+			if(list_valid(map[RemovedBuildings]))
+			{
+				count += list_size(map[RemovedBuildings]);
+			}
 		}
 	}
 	return count;
