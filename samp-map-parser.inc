@@ -214,9 +214,7 @@ stock LoadMap(mapname[])
 	if(list_size(map[MapObjects]) == 0)
 	{
 		printf("[MAP PARSER] %s did not contain any valid objects.", mapname);
-		list_delete(map[MapObjects]);
-		list_delete(map[RemovedBuildings]);
-		pool_remove(Maps, mapindex);
+		pool_remove_deep(Maps, mapindex);
 	}
 	else
 	{
@@ -237,17 +235,15 @@ stock UnloadMap(mapid)
 
 	new map[MAP_DATA];
 	pool_get_arr(Maps, mapid, map);
-	if(list_valid(map[MapObjects]))
+	if(list_valid(map[MapObjects]) && list_size(map[MapObjects]))
 	{
-		for(new Iter:i = list_iter(map[MapObjects]); iter_inside(i); iter_erase(i))
+		for(new Iter:i = list_iter(map[MapObjects]); iter_inside(i); iter_move_next(i))
 		{
 			DestroyDynamicObject(STREAMER_TAG_OBJECT:iter_get(i));
 		}
 	}
 
-	if(list_valid(map[MapObjects])) list_delete(map[MapObjects]);
-	if(list_valid(map[RemovedBuildings])) list_delete(map[RemovedBuildings]);
-	pool_remove(Maps, mapid);
+	pool_remove_deep(Maps, mapid);
 	return true;
 }
 
@@ -255,15 +251,13 @@ stock ReprocessMaps()
 {
 	if(pool_valid(Maps) && pool_size(Maps))
 	{
-		for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_erase(i))
+		for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_erase_deep(i))
 		{
 			iter_get_arr(i, map);
 			for(new Iter:m = list_iter(map[MapObjects]); iter_inside(m); iter_move_next(m))
 			{
 				DestroyDynamicObject(STREAMER_TAG_OBJECT:iter_get(m));
 			}
-			list_delete(map[MapObjects]);
-			list_delete(map[RemovedBuildings]);
 		}
 	}
 
