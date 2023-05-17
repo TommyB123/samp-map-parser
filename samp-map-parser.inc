@@ -503,12 +503,18 @@ static stock RemoveNewBuildings(mapid)
 			for(new Iter:i = list_iter(buildings), remove[REMOVE_DATA]; iter_inside(i); iter_move_next(i))
 			{
 				iter_get_arr(i, remove);
+				#if defined _Y_ITERATE_LOCAL_VERSION || defined _FOREACH_LOCAL_VERSION
+				foreach (new p : Player)
+				{
+				#else
 				for(new p = 0, size = GetPlayerPoolSize(); p <= size; ++p)
 				{
-					if(IsPlayerConnected(p))
+					if(!IsPlayerConnected(p))
 					{
-						RemoveBuildingForPlayer(p, remove[removemodel], remove[removex], remove[removey], remove[removez], remove[removeradius]);
+						continue;
 					}
+				#endif
+					RemoveBuildingForPlayer(p, remove[removemodel], remove[removex], remove[removey], remove[removez], remove[removeradius]);
 				}
 			}
 		}
