@@ -93,8 +93,12 @@ def convert():
             except IndexError:
                 object.worldid = newworldid if newworldid != -5 else -1
 
-            object.interior = interior if len(params) <= 8 else int(params[8])
-            object.player = interior if len(params) <= 9 else int(params[9])
+            try:
+                object.interior = newinteriorid if newinteriorid != -5 else (-1 if params[8] is None else int(params[8]))
+            except IndexError:
+                object.interiorid = newinteriorid if newinteriorid != -5 else -1
+
+            object.player = player if len(params) <= 9 else int(params[9])
             object.streamdist = streamdist if len(params) <= 10 else float(params[10])
             object.drawdist = drawdist if len(params) <= 11 else float(params[11])
             object.areaid = areaid if len(params) <= 12 else int(params[12])
@@ -214,4 +218,10 @@ newworldid = int(input("Enter the desired world ID of the new map (leave blank f
 if newworldid < -1:
     print("No map worldid supplied. The map's world IDs will be inherited from the code inside of the input file.")
 
+
+newinteriorid = int(input("Enter the desired interior ID of the new map (leave blank for all interiors already specified in the input file): ") or -5)
+if newinteriorid < -1:
+    print("No map interiorid supplied. The map's interior IDs will be inherited from the code inside of the input file.")
+
 convert()
+
