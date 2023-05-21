@@ -205,11 +205,6 @@ public OnMapLoaded(mapid, const mapname[], List:objects)
 **A:** I stole this method from a friend's server, and by the time I realized it was kind of silly, it was too late to go back and I didn't care to rewrite the parsing code. There's a slight speed benefit to this method since there's less repetitive text to parse, which is handy when you're dealing with hundreds of thousands of objects and huge maps with thousands of lines in each file.
 
 
-**Q:** Why doesn't the Python script use regex?
-
-**A:** Because I don't care.
-
-
 **Q:** Why doesn't something work in a way I think would be better?
 
 **A:** I wrote this library to suit my needs and development practices for a server I ran for 8 years. If you have an idea that would improve the library or the conversion scripts, you're more than welcome to toss up a pull request.
