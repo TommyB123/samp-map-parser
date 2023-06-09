@@ -267,6 +267,11 @@ stock ReprocessMaps()
 
 stock GetMapNameFromID(mapid)
 {
+	if (!pool_valid(Maps))
+  	{
+		return INVALID_MAP_ID;
+	}
+
 	new mapname[MAX_MAP_NAME];
 	if(!pool_valid(Maps) || mapid < 0 || !pool_has(Maps, mapid))
 	{
