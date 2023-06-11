@@ -267,11 +267,6 @@ stock ReprocessMaps()
 
 stock GetMapNameFromID(mapid)
 {
-	if (!pool_valid(Maps))
-  	{
-		return INVALID_MAP_ID;
-	}
-
 	new mapname[MAX_MAP_NAME];
 	if(!pool_valid(Maps) || mapid < 0 || !pool_has(Maps, mapid))
 	{
@@ -288,6 +283,11 @@ stock GetMapNameFromID(mapid)
 
 stock GetMapIDFromName(const name[])
 {
+	if (!pool_valid(Maps))
+	{
+		return INVALID_MAP_ID;
+	}
+
 	if(IsNumeric(name))
 	{
 		new mapid = strval(name);
