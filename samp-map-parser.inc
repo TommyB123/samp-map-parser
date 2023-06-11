@@ -128,7 +128,8 @@ stock ProcessMaps()
 
 stock LoadMap(mapname[])
 {
-	if(strlen(mapname) > MAX_MAP_NAME) {
+	if(strlen(mapname) > MAX_MAP_NAME)
+	{
 		printf("[MAP PARSER] Map name '%s' is too long.", mapname);
 		return INVALID_MAP_ID;
 	}
@@ -138,7 +139,8 @@ stock LoadMap(mapname[])
 	format(map[MapName], MAX_MAP_NAME, mapname);
 
 	new mapid = GetMapIDFromName(map[MapName]);
-	if(mapid != INVALID_MAP_ID) {
+	if(mapid != INVALID_MAP_ID)
+	{
 		printf("[MAP PARSER] Attempted to load map '%s' while it was already loaded.", mapname);
 		return mapid;
 	}
