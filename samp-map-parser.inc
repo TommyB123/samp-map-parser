@@ -128,13 +128,22 @@ stock ProcessMaps()
 
 stock LoadMap(mapname[])
 {
-	if(strlen(mapname) > MAX_MAP_NAME) return printf("[MAP PARSER] Map name '%s' is too long.", mapname);
+	if(strlen(mapname) > MAX_MAP_NAME)
+	{
+		printf("[MAP PARSER] Map name '%s' is too long.", mapname);
+		return INVALID_MAP_ID;
+	}
 
 	new map[MAP_DATA];
 	strreplace(mapname, MAP_FILE_EXTENSION, "", false, 0, -1, MAX_MAP_NAME);
 	format(map[MapName], MAX_MAP_NAME, mapname);
 
-	if(GetMapIDFromName(map[MapName]) != INVALID_MAP_ID) return printf("[MAP PARSER] Attempted to load map '%s' while it was already loaded.", mapname);
+	new mapid = GetMapIDFromName(map[MapName]);
+	if(mapid != INVALID_MAP_ID)
+	{
+		printf("[MAP PARSER] Attempted to load map '%s' while it was already loaded.", mapname);
+		return mapid;
+	}
 
 	if(!pool_valid(Maps))
 	{
@@ -267,11 +276,6 @@ stock ReprocessMaps()
 
 stock GetMapNameFromID(mapid)
 {
-	if (!pool_valid(Maps))
-  	{
-		return INVALID_MAP_ID;
-	}
-
 	new mapname[MAX_MAP_NAME];
 	if(!pool_valid(Maps) || mapid < 0 || !pool_has(Maps, mapid))
 	{
@@ -288,6 +292,11 @@ stock GetMapNameFromID(mapid)
 
 stock GetMapIDFromName(const name[])
 {
+	if (!pool_valid(Maps))
+	{
+		return INVALID_MAP_ID;
+	}
+
 	if(IsNumeric(name))
 	{
 		new mapid = strval(name);
