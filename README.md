@@ -111,93 +111,29 @@ CMD:loadmap(playerid, params[])
 
 ## Functions
 
-Attempts to load a file in the map directory using the specified file name.
-
-```pawn
-LoadMap(mapname[])
-```
-
-Unload a map that is present on the server. (Requires fetching a map's current ID beforehand)
-All objects associated with the map file are deleted, and if any `RemoveBuildingForPlayer` instructions are contained, they will no longer be applied when new players connect.
-
-```pawn
-UnloadMap(mapid)
-```
-
-Unloads every single map present on the server then parses every available map file again.
-
-```pawn
-ReprocessMaps()
-```
-
-Resolves a map name from an ID. Returns the map's name as a string.
-
-```pawn
-GetMapName(mapid)
-```
-
-Resolves a map's ID from a string. Returns the map ID or `INVALID_MAP_ID` if no map is found.
-
-```pawn
-GetMapID(const name[])
-```
-
-Resolves a map's ID from a dynamic object ID. Returns the map ID or `INVALID_MAP_ID` if no map is linked to the provided object ID.
-
-```pawn
-GetMapIDFromObject(STREAMER_TAG_OBJECT:objectid)
-```
-
-Returns the amount of maps currently loaded through the parser script.
-
-```pawn
-GetMapCount()
-```
-
-Formats a PawnPlus string with a list of currently loaded maps and how many objects each of them has. `order` dictates whether the list will be sorted by map object count (descending).
-
-```pawn
-GetMapList(String:string, bool:order = false)
-```
-
-Checks the map folder for a file with the provided name.
-
-```pawn
-IsValidMapFile(const mapname[])
-```
-
-Exports a currently loaded map back to standard SA-MP object code and writes it to a file in the server's root directory.
-
-```pawn
-ExportMap(mapid)
-```
-
-Temporarily moves the objects belonging to a specific map on the X, Y or Z axis. Not particularly useful, but I needed it for an edge case once or twice.
-
-```pawn
-MoveMapObjects(mapid, Float:xoffset, Float:yoffset, Float:zoffset)
-```
-
-This callback is triggered whenever a map is loaded.
-
-```pawn
-public OnMapLoaded(mapid, const mapname[], List:objects)
-```
-`mapid` is the temporary ID of the map.
-
-`mapname` is the name of the map.
-
-`List:objects` is a PawnPlus list containing referneces to every object ID belonging to the map.
+| Function | Description |
+| - | - |
+| `LoadMap(mapname[])` | Attempts to load a file in the map directory using the specified file name. |
+| `UnloadMap(mapid)` | Unload a map that is present on the server. (Requires fetching a map's current ID beforehand). All objects associated with the map file are deleted, and if any `RemoveBuildingForPlayer` instructions are contained, they will no longer be applied when new players connect.
+| `ReprocessMaps()` | Unloads every single map present on the server then parses every available map file again. |
+| `GetMapNameFromID(mapid)` | Resolves a map name from an ID. Returns the map's name as a string. |
+| `GetMapIDFromName(const name[])` | Resolves a map's ID from a string. Returns the map ID or `INVALID_MAP_ID` if no map is found. |
+| `GetMapIDFromObject(STREAMER_TAG_OBJECT:objectid)` | Resolves a map's ID from a dynamic object ID. Returns the map ID or `INVALID_MAP_ID` if no map is linked to the provided object ID. |
+| `GetMapCount()` | Returns the amount of maps currently loaded through the parser script. |
+| `GetMapList(String:string, bool:order = false)` | Formats a PawnPlus string with a list of currently loaded maps and how many objects each of them has. `order` dictates whether the list will be sorted by map object count (descending). |
+| `IsValidMapFile(const mapname[])` | Checks the map folder for a file with the provided name. Returns `true` if found, `false` if not.
+| `ExportMap(mapid)` | Exports a currently-loaded map back to standard SA-MP object code and writes it to a file in the server's root directory. |
+| `MoveMapObjects(mapid, Float:xoffset, Float:yoffset, Float:zoffset)` | Temporarily moves the objects belonging to a specific map on the X, Y or Z axis. Not particularly useful, but I needed it for an edge case once or twice. |
+| `public OnMapLoaded(mapid, const mapname[], List:objects)` | This callback is triggered whenever a map is loaded.<br />`mapid` is the temporary ID of the map.<br />`mapname` is the name of the map.<br />`List:objects` is a PawnPlus list containing referneces to every object ID belonging to the map. |
 
 ## Relevant constants
 
-`MAP_FILE_DIRECTORY` - The directory the library will search for map files in. Defaults to `./Maps/`
-
-`MAP_FILE_EXTENSION` - The file extension that the library will open when parsing map files. Defaults to `.txt`
-
-`MAX_MAP_NAME` - The maximum amount of characters the name of a map can contain. Defaults to `64`.
-
-`INVALID_MAP_ID` - Used to refer to an invalid map ID. True value is `-1`.
+| Constant | Default Value | Description  |
+| ------------- | ------------- | ------------- |
+| `MAP_FILE_DIRECTORY`  | `./Maps/`  | The directory the library will search for map files in.  |
+| `MAP_FILE_EXTENSION`  | `txt`  | The file extension that the library will open when parsing map files.  |
+| `MAX_MAP_NAME`  | `64`  | The maximum amount of characters the name of a map can contain.  |
+| `INVALID_MAP_ID`  | `-1`  | Used to refer to an invalid map ID.  |
 
 ## Questions I'll probably get
 **Q:** Why does this library use a custom format that requires conversion rather than simply parsing object functions from text files?
