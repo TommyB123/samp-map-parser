@@ -53,6 +53,12 @@ parser.add_argument(
     type=int,
     default=None
 )
+parser.add_argument(
+    "--priority",
+    help="Override priority for all objects",
+    type=int,
+    default=None
+)
 args = parser.parse_args()
 
 input_directory = Path(args.input)
@@ -153,6 +159,10 @@ def convert_map(map_name: str):
     if args.world is not None:
         for obj in objects:
             obj.worldid = args.world
+    
+    if args.priority is not None:
+        for obj in objects:
+            obj.priority = args.priority
     
     output_directory.mkdir(parents=True, exist_ok=True)
     write_converted_map(map_output_file, buildings, objects)
