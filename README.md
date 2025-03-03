@@ -6,7 +6,7 @@ This is a library I wrote for Red County Roleplay to quickly parse individual SA
 
 **This library is not very beginner friendly as a result of maps being stored in a non-standard, CSV-like format. It is also rather dependency heavy, so be wary if that's something that bothers you.**
 
-##### Dependencies
+## Dependencies
 * [Streamer Plugin](https://github.com/samp-incognito/samp-streamer-plugin)
 * [PawnPlus](https://github.com/IllidanS4/PawnPlus)
 * [FileManager](https://github.com/JaTochNietDan/SA-MP-FileManager)
@@ -18,7 +18,7 @@ This is a library I wrote for Red County Roleplay to quickly parse individual SA
 Simply install to your project:
 
 ```bash
-sampctl package install TommyB123/samp-map-parser
+sampctl install TommyB123/samp-map-parser
 ```
 
 Include in your code and begin using the library:
@@ -61,15 +61,44 @@ mat 0 19517 noncolored gen_white 0x00000000
 mat 0 19517 noncolored gen_white 0x00000000
 ```
 
-##### Using the Python conversion script 
-* Ensure Python is available on your system. Since the code is simple, any modern version (>3.5?) should work. I mostly used it with Python 3.8, but your mileage may vary.
-* Put your desired map code into a text file called `input.txt` and put it in the same directory as `converter.py`.
-* Open up a terminal/command line window in the appropriate directory and start the script (`python converter.py`)
-* If the `input.txt` file is present, you will be prompted to pick a name for the exported map file. Be sure to include your desired file extension! By default, the map parser reads for `.txt` but this can be changed. The script will output to `output.txt` if you do not provide a file name.
-* You will then be prompted to enter a virtual world for your map's objects. If you leave this blank, the virtual world argument of `CreateDynamicObject` will be carried over to the converted code. Otherwise, the virtual world of the map will be overriden with your input. If you want your objects to stream to every virtual world, use -1.
-* Your SA-MP map code will be converted to parser-compatible code!
+### Using the Python conversion script
 
-##### Using the PAWN filterscript
+#### Prerequisites
+* Ensure Python is available on your system. Any modern version (>3.5) should work. The script has been tested with Python 3.8.
+
+#### Steps
+1. **Prepare Input File(s):**
+   * Place your desired map code into a text file with the `.txt` extension.
+   * You can use maps created in [Texture Studio](https://github.com/Pottus/Texture-Studio)
+   * By default, the script looks for files in the `map_sources` directory.
+
+2. **Run the Script:**
+   * Open a terminal/command line window in the appropriate directory.
+   * To convert all files in the `map_sources` directory:
+     ```sh
+     python converter/converter.py
+     ```
+   * To convert a single file:
+     ```sh
+     python converter/converter.py --file path/to/your/input.txt
+     ```
+
+#### Script Arguments
+* `-i`, `--input`: Input directory containing map files (default: `map_sources`)
+* `-o`, `--output`: Output directory for converted maps (default: `scriptfiles/maps`)
+* `--input-ext`: Input file extension (default: `.txt`)
+* `--output-ext`: Output file extension (default: `.map`)
+* `--file`: Process only a single file instead of a directory
+* `--interior`: Override interior ID for all objects
+* `--world`: Override world ID for all objects
+* `--priority`: Override priority value for all objects
+
+#### Notes
+* If the `--file` argument is used, the script will process only the specified file.
+* If the `--interior`, `--world`, or `--priority` arguments are provided, they will override the respective attributes for all objects in the map.
+* The script will output the converted map files to the specified output directory with the `.map` extension by default.
+
+### Using the PAWN Filterscript
 * Open `mapconvert.pwn` in your editor of choice.
 * Paste your map's code into the `CreateMap` function at the top of the script.
 * Compile the script and then run it as a SA-MP filterscript.
@@ -124,7 +153,7 @@ CMD:loadmap(playerid, params[])
 | `IsValidMapFile(const mapname[])` | Checks the map folder for a file with the provided name. Returns `true` if found, `false` if not.
 | `ExportMap(mapid)` | Exports a currently-loaded map back to standard SA-MP object code and writes it to a file in the server's root directory. |
 | `MoveMapObjects(mapid, Float:xoffset, Float:yoffset, Float:zoffset)` | Temporarily moves the objects belonging to a specific map on the X, Y or Z axis. Not particularly useful, but I needed it for an edge case once or twice. |
-| `public OnMapLoaded(mapid, const mapname[], List:objects)` | This callback is triggered whenever a map is loaded.<br />`mapid` is the temporary ID of the map.<br />`mapname` is the name of the map.<br />`List:objects` is a PawnPlus list containing referneces to every object ID belonging to the map. |
+| `public OnMapLoaded(mapid, const mapname[], List:objects)` | This callback is triggered whenever a map is loaded.<br />`mapid` is the temporary ID of the map.<br />`mapname` is the name of the map.<br />`List:objects` is a PawnPlus list containing references to every object ID belonging to the map. |
 
 ## Relevant constants
 
@@ -144,7 +173,6 @@ CMD:loadmap(playerid, params[])
 **Q:** Why doesn't something work in a way I think would be better?
 
 **A:** I wrote this library to suit my needs and development practices for a server I ran for 8 years. If you have an idea that would improve the library or the conversion scripts, you're more than welcome to toss up a pull request.
-
 
 ## Credits
 me
