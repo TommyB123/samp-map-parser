@@ -87,7 +87,7 @@ mat 0 19517 noncolored gen_white 0x00000000
 * `-i`, `--input`: Input directory containing map files (default: `map_sources`)
 * `-o`, `--output`: Output directory for converted maps (default: `scriptfiles/maps`)
 * `--input-ext`: Input file extension (default: `.txt`)
-* `--output-ext`: Output file extension (default: `.map`)
+* `--output-ext`: Output file extension (default: `.txt`)
 * `--file`: Process only a single file instead of a directory
 * `--interior`: Override interior ID for all objects
 * `--world`: Override world ID for all objects
@@ -96,7 +96,7 @@ mat 0 19517 noncolored gen_white 0x00000000
 #### Notes
 * If the `--file` argument is used, the script will process only the specified file.
 * If the `--interior`, `--world`, or `--priority` arguments are provided, they will override the respective attributes for all objects in the map.
-* The script will output the converted map files to the specified output directory with the `.map` extension by default.
+* The script will output the converted map files to the specified output directory with the `.txt` extension by default.
 
 ### Using the PAWN Filterscript
 * Open `mapconvert.pwn` in your editor of choice.
