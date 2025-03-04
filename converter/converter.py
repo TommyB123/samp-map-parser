@@ -34,7 +34,7 @@ parser.add_argument(
     "--output-ext",
     help="Output file extension",
     type=str,
-    default=".map"
+    default=".txt"
 )
 parser.add_argument(
     "--file",
