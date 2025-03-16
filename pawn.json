@@ -4,7 +4,9 @@
 	"entry": "test.pwn",
 	"output": "test.amx",
 	"dependencies": [
-		"pawn-lang/samp-stdlib",
+		"openmultiplayer/omp-stdlib",
+		"pawn-lang/samp-stdlib@open.mp",
+		"pawn-lang/pawn-stdlib@open.mp",
 		"samp-incognito/samp-streamer-plugin:v2.9.5",
 		"IllidanS4/PawnPlus:v1.4.0.1",
 		"JaTochNietDan/SA-MP-FileManager:1.5.1",

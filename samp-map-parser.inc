@@ -3,7 +3,7 @@
 #endif
 #define __samp_map_parser_included
 
-#include <a_samp>
+#include <open.mp>
 #include <streamer>
 #include <PawnPlus>
 #include <filemanager>
