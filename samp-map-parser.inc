@@ -43,9 +43,10 @@ static enum _:REMOVE_DATA
 
 static Pool:Maps;
 static bool:ProcessingMaps;
-
+static bool:SkipMap;
 
 forward OnMapLoaded(mapid, const mapname[], List:objects);
+forward OnMapBeginLoading(mapid, const mapname[], firstobjectworldid);
 
 public OnPlayerConnect(playerid)
 {
@@ -158,6 +159,14 @@ stock LoadMap(mapname[])
 	{
 		if(!templine[0]) continue;
 
+		if(SkipMap)
+		{
+			SkipMap = false;
+			UnloadMap(mapindex);
+			f_close(f);
+			return INVALID_MAP_ID;
+		}
+
 		if(templine[0] == 'r')
 		{
 			sscanf(templine, "{s[5]}iffff", remove[removemodel], remove[removex], remove[removey], remove[removez], remove[removeradius]);
@@ -183,17 +192,21 @@ stock LoadMap(mapname[])
 			SetDynamicObjectMaterialText(tempobj, matindex, mattext, matsize, matfont, matfontsize, matbold, matcolor, matbgcolor, matalign);
 			continue;
 		}
-		else
-		{
-			sscanf(templine, "iffffffiI(-1)I(-1)F(300.0)F(300.0)I(-1)I(0)", model, x, y, z, rx, ry, rz, world, interior, playerid, streamdist, drawdist, areaid, priority);
-			tempobj = CreateDynamicObject(model, x, y, z, rx, ry, rz, world, interior, playerid, streamdist, drawdist, STREAMER_TAG_AREA:areaid, priority);
 
-			mapobject[MAP_OBJ_EXTRA_OFFSET] = -5;
-			mapobject[MAP_OBJ_EXTRA_MAPID] = mapindex;
-			Streamer_SetArrayData(STREAMER_TYPE_OBJECT, tempobj, E_STREAMER_EXTRA_ID, mapobject);
+		//parse an object
+		sscanf(templine, "iffffffiI(-1)I(-1)F(300.0)F(300.0)I(-1)I(0)", model, x, y, z, rx, ry, rz, world, interior, playerid, streamdist, drawdist, areaid, priority);
+		if(!list_size(objects))
+		{
+			//call OnMapBeginLoading before the first object is created
+			pawn_call_public("OnMapBeginLoading", "isi", mapid, mapname, world);
+		}
+		tempobj = CreateDynamicObject(model, x, y, z, rx, ry, rz, world, interior, playerid, streamdist, drawdist, STREAMER_TAG_AREA:areaid, priority);
+
+		mapobject[MAP_OBJ_EXTRA_OFFSET] = -5;
+		mapobject[MAP_OBJ_EXTRA_MAPID] = mapindex;
+		Streamer_SetArrayData(STREAMER_TYPE_OBJECT, tempobj, E_STREAMER_EXTRA_ID, mapobject);
 
 		list_add(objects, _:tempobj);
-		}
 	}
 	f_close(f);
 
@@ -576,6 +589,16 @@ static stock CountRemovedBuildings()
 		}
 	}
 	return count;
+}
+
+stock IsMapParserRunning()
+{
+	return ProcessingMaps;
+}
+
+stock SkipCurrentlyLoadingMap()
+{
+	SkipMap = true;
 }
 
 //hooks
