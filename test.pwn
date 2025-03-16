@@ -12,6 +12,12 @@ main()
 
 	print("Exporting map ID 0");
 	ExportMap(0);
+
+	print("Unloading map ID 0");
+	UnloadMap(0);
+
+	print("Reloading all maps");
+	ReprocessMaps();
 }
 
 public OnMapLoaded(mapid, const mapname[], List:objects)
