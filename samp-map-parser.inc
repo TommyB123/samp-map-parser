@@ -30,27 +30,6 @@
 #if !defined PREVENT_REMOVE_BUILDING_CRASH
 	#define PREVENT_REMOVE_BUILDING_CRASH 1
 #endif
-
-#if !defined isnull
-	#define isnull(%1) ((!(%1[0])) || (((%1[0]) == '\1') && (!(%1[1]))))
-#endif
-
-#if !defined IsNumeric
-	IsNumeric(const string[])
-	{
-		new length = strlen(string);
-		if(length == 0) return false;
-
-		for(new i = 0; i < length; i++)
-		{
-			if((string[i] > '9' || string[i] < '0' && string[i] != '-' && string[i] != '+') || (string[i] == '-' && i != 0) || (string[i] == '+' && i != 0)) return false;
-		}
-
-		if(length == 1 && (string[0] == '-' || string[0] == '+')) return false;
-		return true;
-	}
-#endif
-
 static enum _:REMOVE_DATA
 {
 	removemodel,
@@ -179,7 +158,7 @@ stock LoadMap(mapname[])
 
 	while(f_read(f, templine))
 	{
-		if(isnull(templine)) continue;
+		if(!templine[0]) continue;
 
 		if(templine[0] == 'r')
 		{
@@ -297,7 +276,8 @@ stock GetMapIDFromName(const name[])
 		return INVALID_MAP_ID;
 	}
 
-	if(IsNumeric(name))
+	new mapid;
+	if(!sscanf(name, "i", mapid))
 	{
 		new mapid = strval(name);
 		if(mapid >= 0 && pool_has(Maps, mapid))
