@@ -36,12 +36,10 @@ static enum _:REMOVE_DATA
 	Float:removeradius
 };
 
-static enum _:MAP_DATA
-{
-	MapName[MAX_MAP_NAME],
-	List:MapObjects,
-	List:RemovedBuildings
-};
+//constants for map data
+#define MAP_KEY_NAME "MAP_KEY_NAME"
+#define MAP_KEY_OBJECT_LIST "MAP_KEY_OBJECT_LIST"
+#define MAP_KEY_REMOVED_BUILDING_LIST "MAP_KEY_REMOVED_BUILDING_LIST"
 
 static Pool:Maps;
 static bool:ProcessingMaps;
@@ -64,8 +62,7 @@ stock ProcessMaps()
 {
 	if(!pool_valid(Maps))
 	{
-		Maps = pool_new();
-		pool_set_ordered(Maps, true);
+		Maps = pool_new(.ordered = true);
 	}
 
 	if(!dir_exists(MAP_FILE_DIRECTORY))
@@ -85,6 +82,7 @@ stock ProcessMaps()
 	{
 		if(ftype == FM_DIR) continue;
 		if(strfind(fname, MAP_FILE_EXTENSION) == -1) continue;
+
 		LoadMap(fname);
 	}
 	dir_close(MapsDir);
@@ -103,13 +101,19 @@ stock LoadMap(mapname[])
 		return INVALID_MAP_ID;
 	}
 
-	new map[MAP_DATA];
-	strreplace(mapname, MAP_FILE_EXTENSION, "", false, 0, -1, MAX_MAP_NAME);
-	format(map[MapName], MAX_MAP_NAME, mapname);
+	new Map:data = map_new(), name[MAX_MAP_NAME];
+	format(name, MAX_MAP_NAME, mapname);
+	new index = strfind(mapname, MAP_FILE_EXTENSION);
+	if(index != -1)
+	{
+		name[index] = EOS; //trimn the file extension from the map name
+	}
+	map_str_add_str(data, MAP_KEY_NAME, name);
 
-	new mapid = GetMapIDFromName(map[MapName]);
+	new mapid = GetMapIDFromName(name);
 	if(mapid != INVALID_MAP_ID)
 	{
+		map_delete(data);
 		printf("[MAP PARSER] Attempted to load map '%s' while it was already loaded.", mapname);
 		return mapid;
 	}
@@ -120,15 +124,19 @@ stock LoadMap(mapname[])
 		pool_set_ordered(Maps, true);
 	}
 
-	map[MapObjects] = list_new();
-	map[RemovedBuildings] = list_new();
-	new mapindex = pool_add_arr(Maps, map);
+	new List:objects = list_new();
+	map_str_add(data, MAP_KEY_OBJECT_LIST, objects);
+
+	new List:buildings = list_new();
+	map_str_add(data, MAP_KEY_REMOVED_BUILDING_LIST, buildings);
+
+	new mapindex = pool_add(Maps, data);
 
 	//string for formatting
 	new templine[256];
 
 	//file variables
-	format(templine, sizeof(templine), "%s%s%s", MAP_FILE_DIRECTORY, mapname, MAP_FILE_EXTENSION);
+	format(templine, sizeof(templine), "%s%s%s", MAP_FILE_DIRECTORY, name, MAP_FILE_EXTENSION);
 	new File:f = f_open(templine, "r");
 
 	//object variables
@@ -156,7 +164,7 @@ stock LoadMap(mapname[])
 			#if defined CA_RemoveBuilding
 				CA_RemoveBuilding(remove[removemodel], remove[removex], remove[removey], remove[removez], remove[removeradius]);
 			#endif
-			list_add_arr(map[RemovedBuildings], remove);
+			list_add_arr(buildings, remove);
 			continue;
 		}
 		else if(templine[0] == 'm')
@@ -184,24 +192,28 @@ stock LoadMap(mapname[])
 			mapobject[MAP_OBJ_EXTRA_MAPID] = mapindex;
 			Streamer_SetArrayData(STREAMER_TYPE_OBJECT, tempobj, E_STREAMER_EXTRA_ID, mapobject);
 
-			list_add(map[MapObjects], _:tempobj);
+		list_add(objects, _:tempobj);
 		}
 	}
 	f_close(f);
 
-	if(list_size(map[MapObjects]) == 0)
+	if(!list_size(objects))
 	{
 		printf("[MAP PARSER] %s did not contain any valid objects.", mapname);
 		pool_remove_deep(Maps, mapindex);
+		return INVALID_MAP_ID;
 	}
-	else
+
+	if(!list_size(buildings))
 	{
-		if(!ProcessingMaps)
-		{
-			RemoveNewBuildings(mapindex);
-		}
-		CallLocalFunction("OnMapLoaded", "isi", mapindex, mapname, _:map[MapObjects]);
+		map_str_remove_deep(data, MAP_KEY_REMOVED_BUILDING_LIST);
 	}
+
+	if(!ProcessingMaps)
+	{
+		RemoveNewBuildings(mapindex);
+	}
+	pawn_call_public("OnMapLoaded", "isi", mapindex, mapname, objects);
 
 	return mapindex;
 }
@@ -211,11 +223,10 @@ stock UnloadMap(mapid)
 	if(!pool_valid(Maps)) return true;
 	if(mapid < 0 || !pool_has(Maps, mapid)) return true;
 
-	new map[MAP_DATA];
-	pool_get_arr(Maps, mapid, map);
-	if(list_valid(map[MapObjects]) && list_size(map[MapObjects]))
+	new Map:data = Map:pool_get(Maps, mapid), List:objects = List:map_str_get(data, MAP_KEY_OBJECT_LIST);
+	if(list_valid(objects) && list_size(objects))
 	{
-		for(new Iter:i = list_iter(map[MapObjects]); iter_inside(i); iter_move_next(i))
+		for(new Iter:i = list_iter(objects); iter_inside(i); iter_move_next(i))
 		{
 			DestroyDynamicObject(STREAMER_TAG_OBJECT:iter_get(i));
 		}
@@ -229,10 +240,11 @@ stock ReprocessMaps()
 {
 	if(pool_valid(Maps) && pool_size(Maps))
 	{
-		for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_erase_deep(i))
+		for(new Iter:i = pool_iter(Maps); iter_inside(i); iter_erase_deep(i))
 		{
-			iter_get_arr(i, map);
-			for(new Iter:m = list_iter(map[MapObjects]); iter_inside(m); iter_move_next(m))
+			new Map:data = Map:iter_get(i);
+			new List:objects = List:map_str_get(data, MAP_KEY_OBJECT_LIST);
+			for(new Iter:m = list_iter(objects); iter_inside(m); iter_move_next(m))
 			{
 				DestroyDynamicObject(STREAMER_TAG_OBJECT:iter_get(m));
 			}
@@ -252,16 +264,15 @@ stock GetMapNameFromID(mapid)
 	}
 	else
 	{
-		new map[MAP_DATA];
-		pool_get_arr(Maps, mapid, map);
-		format(mapname, sizeof(mapname), map[MapName]);
+		new Map:data = Map:pool_get(Maps, mapid);
+		map_str_get_str(data, MAP_KEY_NAME, mapname);
 	}
 	return mapname;
 }
 
 stock GetMapIDFromName(const name[])
 {
-	if (!pool_valid(Maps))
+	if(!pool_valid(Maps))
 	{
 		return INVALID_MAP_ID;
 	}
@@ -277,10 +288,11 @@ stock GetMapIDFromName(const name[])
 	}
 	else
 	{
-		for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
+		for(new Iter:i = pool_iter(Maps); iter_inside(i); iter_move_next(i))
 		{
-			iter_get_arr(i, map);
-			if(!strcmp(name, map[MapName], true))
+			new Map:data = Map:iter_get(i), mapname[MAX_MAP_NAME];
+			map_str_get_str(data, MAP_KEY_NAME, mapname);
+			if(!strcmp(name, mapname, true))
 			{
 				return iter_get_key(i);
 			}
@@ -326,11 +338,11 @@ stock GetMapList(String:string, bool:order = false)
 	if(order)
 	{
 		new mapinfo[2], List:maplist = list_new();
-		for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
+		for(new Iter:i = pool_iter(Maps); iter_inside(i); iter_move_next(i))
 		{
-			iter_get_arr(i, map);
+			new Map:data = Map:iter_get(i);
 			mapinfo[0] = iter_get_key(i);
-			mapinfo[1] = list_size(map[MapObjects]);
+			mapinfo[1] = list_size(List:map_str_get(data, MAP_KEY_OBJECT_LIST));
 			list_add_arr(maplist, mapinfo);
 		}
 
@@ -344,10 +356,12 @@ stock GetMapList(String:string, bool:order = false)
 	}
 	else
 	{
-		for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
+		for(new Iter:i = pool_iter(Maps); iter_inside(i); iter_move_next(i))
 		{
-			iter_get_arr(i, map);
-			str_append_format(string, "%i\t%s\t%i\n", iter_get_key(i), map[MapName], list_size(map[MapObjects]));
+			new Map:data = Map:iter_get(i), mapname[MAX_MAP_NAME], List:objects;
+			map_str_get_str(data, MAP_KEY_NAME, mapname);
+			objects = List:map_str_get(data, MAP_KEY_OBJECT_LIST);
+			str_append_format(string, "%i\t%s\t%i\n", iter_get_key(i), mapname, list_size(objects));
 		}
 	}
 	return true;
@@ -379,23 +393,27 @@ stock ExportMap(mapid)
 	if(file_exists(mapname)) file_delete(mapname);
 	file_create(mapname);
 
-	new STREAMER_TAG_OBJECT:tempobject, File:f = f_open(mapname, "w"), map[MAP_DATA], remove[REMOVE_DATA];
-	pool_get_arr(Maps, mapid, map);
+	new STREAMER_TAG_OBJECT:tempobject, File:f = f_open(mapname, "w"), remove[REMOVE_DATA], Map:data;
+	data = Map:pool_get(Maps, mapid);
 
 	f_write(f, "new tempobject;\n");
 
 	//write removed buildings
-	for(new Iter:i = list_iter(map[RemovedBuildings]); iter_inside(i); iter_move_next(i))
+	if(map_has_str_key(data, MAP_KEY_REMOVED_BUILDING_LIST))
 	{
-		iter_get_arr(i, remove);
-		format(templine, sizeof(templine), "RemoveBuildingForPlayer(playerid, %i, %f, %f, %f, %.2f);\n", remove[removemodel], remove[removex], remove[removey], remove[removez], remove[removeradius]);
-		f_write(f, templine);
+		new List:buildings = List:map_str_get(data, MAP_KEY_REMOVED_BUILDING_LIST);
+		for(new Iter:i = list_iter(buildings); iter_inside(i); iter_move_next(i))
+		{
+			iter_get_arr(i, remove);
+			format(templine, sizeof(templine), "RemoveBuildingForPlayer(playerid, %i, %f, %f, %f, %.2f);\n", remove[removemodel], remove[removex], remove[removey], remove[removez], remove[removeradius]);
+			f_write(f, templine);
+		}
 	}
 
 	//write all objects
 	for(new k = 0; k < 2; k++) //write objects with materials first, then objects without
 	{
-		for(new Iter:i = list_iter(map[MapObjects]); iter_inside(i); iter_move_next(i))
+		for(new Iter:i = list_iter(List:map_str_get(data, MAP_KEY_OBJECT_LIST)); iter_inside(i); iter_move_next(i))
 		{
 			tempobject = STREAMER_TAG_OBJECT:iter_get(i);
 			if(!IsValidDynamicObject(tempobject)) continue;
@@ -465,7 +483,9 @@ stock MoveMapObjects(mapid, Float:xoffset, Float:yoffset, Float:zoffset)
 {
 	if(!pool_valid(Maps) || !pool_size(Maps) || mapid < 0 || !pool_has(Maps, mapid)) return false;
 
-	for(new Iter:i = list_iter(List:pool_get(Maps, mapid, MapObjects)), Float:x, Float:y, Float:z, STREAMER_TAG_OBJECT:objectid; iter_inside(i); iter_move_next(i))
+
+	new Map:data = Map:pool_get(Maps, mapid);
+	for(new Iter:i = list_iter(List:map_str_get(data, MAP_KEY_OBJECT_LIST)), Float:x, Float:y, Float:z, STREAMER_TAG_OBJECT:objectid; iter_inside(i); iter_move_next(i))
 	{
 		objectid = STREAMER_TAG_OBJECT:iter_get(i);
 		if(!IsValidDynamicObject(objectid)) continue;
@@ -480,25 +500,15 @@ static stock RemoveNewBuildings(mapid)
 {
 	if(pool_valid(Maps) && mapid >= 0 && pool_has(Maps, mapid))
 	{
-		new List:buildings = List:pool_get(Maps, mapid, RemovedBuildings);
-		if(list_valid(buildings))
+		new Map:data = Map:pool_get(Maps, mapid);
+		if(map_has_str_key(data, MAP_KEY_REMOVED_BUILDING_LIST))
 		{
-			for(new Iter:i = list_iter(buildings), remove[REMOVE_DATA]; iter_inside(i); iter_move_next(i))
+			new List:buildings, players[MAX_PLAYERS];
+			new playercount = GetPlayers(players);
+			buildings = List:map_str_get(data, MAP_KEY_REMOVED_BUILDING_LIST);
+			for(new i = 0; i < playercount; ++i)
 			{
-				iter_get_arr(i, remove);
-				#if defined _Y_ITERATE_LOCAL_VERSION || defined _FOREACH_LOCAL_VERSION
-				foreach (new p : Player)
-				{
-				#else
-				for(new p = 0, size = GetPlayerPoolSize(); p <= size; ++p)
-				{
-					if(!IsPlayerConnected(p))
-					{
-						continue;
-					}
-				#endif
-					RemoveBuildingForPlayer(p, remove[removemodel], remove[removex], remove[removey], remove[removez], remove[removeradius]);
-				}
+				RemoveMapBuildingsForPlayer(players[i], buildings);
 			}
 		}
 	}
@@ -509,36 +519,26 @@ static stock ProcessRemovedBuildings(playerid)
 {
 	if(!pool_valid(Maps) || !pool_size(Maps)) return false;
 
-	#if PREVENT_REMOVE_BUILDING_CRASH == 1
-		new bool:endremove = false;
-	#endif
-
-	for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
+	for(new Iter:i = pool_iter(Maps); iter_inside(i); iter_move_next(i))
 	{
-		#if PREVENT_REMOVE_BUILDING_CRASH == 1
-			if(endremove)
-			{
-				break;
-			}
-		#endif
-
-		iter_get_arr(i, map);
-		if(list_valid(map[RemovedBuildings]))
+		new Map:data = Map:iter_get(i);
+		if(map_has_str_key(data, MAP_KEY_REMOVED_BUILDING_LIST))
 		{
-			for(new Iter:b = list_iter(map[RemovedBuildings]), remove[REMOVE_DATA]; iter_inside(b); iter_move_next(b))
-			{
-				iter_get_arr(b, remove);
-				RemoveBuildingForPlayer(playerid, remove[removemodel], remove[removex], remove[removey], remove[removez], remove[removeradius]);
-				#if PREVENT_REMOVE_BUILDING_CRASH == 1
-					++PlayerRemovedBuildings[playerid];
-					if(PlayerRemovedBuildings[playerid] >= 950)
-					{
-						endremove = true;
-						break;
-					}
-				#endif
-			}
+			new List:buildings = List:map_str_get(data, MAP_KEY_REMOVED_BUILDING_LIST);
+			RemoveMapBuildingsForPlayer(playerid, buildings);
 		}
+	}
+	return true;
+}
+
+static stock RemoveMapBuildingsForPlayer(playerid, List:buildings)
+{
+	if(!list_valid(buildings)) return false;
+
+	for(new Iter:i = list_iter(buildings), remove[REMOVE_DATA]; iter_inside(i); iter_move_next(i))
+	{
+		iter_get_arr(i, remove);
+		RemoveBuildingForPlayer(playerid, remove[removemodel], remove[removex], remove[removey], remove[removez], remove[removeradius]);
 	}
 	return true;
 }
@@ -548,10 +548,10 @@ static stock CountMapObjects()
 	new count;
 	if(pool_valid(Maps) && pool_size(Maps))
 	{
-		for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
+		for(new Iter:i = pool_iter(Maps); iter_inside(i); iter_move_next(i))
 		{
-			iter_get_arr(i, map);
-			count += list_size(map[MapObjects]);
+			new Map:data = Map:iter_get(i);
+			count += list_size(List:map_str_get(data, MAP_KEY_OBJECT_LIST));
 		}
 	}
 	return count;
@@ -562,12 +562,16 @@ static stock CountRemovedBuildings()
 	new count;
 	if(pool_valid(Maps) && pool_size(Maps))
 	{
-		for(new Iter:i = pool_iter(Maps), map[MAP_DATA]; iter_inside(i); iter_move_next(i))
+		for(new Iter:i = pool_iter(Maps); iter_inside(i); iter_move_next(i))
 		{
-			iter_get_arr(i, map);
-			if(list_valid(map[RemovedBuildings]))
+			new Map:data = Map:iter_get(i);
+			if(map_has_str_key(data, MAP_KEY_REMOVED_BUILDING_LIST))
 			{
-				count += list_size(map[RemovedBuildings]);
+				new List:buildings = List:map_str_get(data, MAP_KEY_REMOVED_BUILDING_LIST);
+				if(list_valid(buildings))
+				{
+					count += list_size(buildings);
+				}
 			}
 		}
 	}
