@@ -27,9 +27,6 @@
 	#define MAP_FILE_EXTENSION ".txt"
 #endif
 
-#if !defined PREVENT_REMOVE_BUILDING_CRASH
-	#define PREVENT_REMOVE_BUILDING_CRASH 1
-#endif
 static enum _:REMOVE_DATA
 {
 	removemodel,
@@ -49,18 +46,11 @@ static enum _:MAP_DATA
 static Pool:Maps;
 static bool:ProcessingMaps;
 
-#if PREVENT_REMOVE_BUILDING_CRASH == 1
-static PlayerRemovedBuildings[MAX_PLAYERS];
-#endif
 
 forward OnMapLoaded(mapid, const mapname[], List:objects);
 
 public OnPlayerConnect(playerid)
 {
-	#if PREVENT_REMOVE_BUILDING_CRASH == 1
-		PlayerRemovedBuildings[playerid] = 0;
-	#endif
-
 	if(!IsPlayerNPC(playerid)) ProcessRemovedBuildings(playerid);
 
 	#if defined MAP_OnPlayerConnect
@@ -279,7 +269,6 @@ stock GetMapIDFromName(const name[])
 	new mapid;
 	if(!sscanf(name, "i", mapid))
 	{
-		new mapid = strval(name);
 		if(mapid >= 0 && pool_has(Maps, mapid))
 		{
 			return mapid;
