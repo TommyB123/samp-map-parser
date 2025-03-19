@@ -1,3 +1,5 @@
+## As of version 1.2.0, this library ONLY supports the open.mp libraries with the assumption that `MIXED_SPELLING` and `NO_TAGS` are used.
+
 # samp-map-parser
 
 [![sampctl](https://img.shields.io/badge/sampctl-samp--map--parser-2f2f2f.svg?style=for-the-badge)](https://github.com/TommyB123/samp-map-parser)
@@ -144,6 +146,7 @@ CMD:loadmap(playerid, params[])
 | - | - |
 | `LoadMap(mapname[])` | Attempts to load a file in the map directory using the specified file name. |
 | `UnloadMap(mapid)` | Unload a map that is present on the server. (Requires fetching a map's current ID beforehand). All objects associated with the map file are deleted, and if any `RemoveBuildingForPlayer` instructions are contained, they will no longer be applied when new players connect.
+| `SkipCurrentlyLoadingMap()` | Skips any map that is currently loading and completely unloads it. Designed to be used with the `OnMapBeginLoading` callback for more control over what maps are fully loaded at server startup.
 | `ReprocessMaps()` | Unloads every single map present on the server then parses every available map file again. |
 | `GetMapNameFromID(mapid)` | Resolves a map name from an ID. Returns the map's name as a string. |
 | `GetMapIDFromName(const name[])` | Resolves a map's ID from a string. Returns the map ID or `INVALID_MAP_ID` if no map is found. |
@@ -154,6 +157,7 @@ CMD:loadmap(playerid, params[])
 | `ExportMap(mapid)` | Exports a currently-loaded map back to standard SA-MP object code and writes it to a file in the server's root directory. |
 | `MoveMapObjects(mapid, Float:xoffset, Float:yoffset, Float:zoffset)` | Temporarily moves the objects belonging to a specific map on the X, Y or Z axis. Not particularly useful, but I needed it for an edge case once or twice. |
 | `public OnMapLoaded(mapid, const mapname[], List:objects)` | This callback is triggered whenever a map is loaded.<br />`mapid` is the temporary ID of the map.<br />`mapname` is the name of the map.<br />`List:objects` is a PawnPlus list containing references to every object ID belonging to the map. |
+| `public OnMapBeginLoading(mapid, const mapname[], firstobjectworldid)` | This callback is triggered before the first object in a map has been created.<br />`mapid` is the temporary ID of the map.<br />`mapname` is the name of the map.<br />`firstobjectworldid` is the virtual world of the first object that is about to be created.
 
 ## Relevant constants
 
