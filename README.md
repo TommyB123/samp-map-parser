@@ -1,4 +1,4 @@
-## As of version 1.2.0, this library ONLY supports the open.mp libraries with the assumption that `MIXED_SPELLING` and `NO_TAGS` are used.
+## As of version 1.2.0, this library ONLY supports the open.mp libraries with the assumption that `MIXED_SPELLING` and `NO_TAGS` are used. For SA-MP support, refer to older versions.
 
 # samp-map-parser
 
