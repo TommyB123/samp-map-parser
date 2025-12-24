@@ -7,8 +7,8 @@
 		"openmultiplayer/omp-stdlib",
 		"pawn-lang/samp-stdlib@open.mp",
 		"pawn-lang/pawn-stdlib@open.mp",
-		"samp-incognito/samp-streamer-plugin:v2.9.5",
-		"IllidanS4/PawnPlus:v1.4.0.1",
+		"samp-incognito/samp-streamer-plugin:v2.9.6",
+		"IllidanS4/PawnPlus:v1.5.1",
 		"JaTochNietDan/SA-MP-FileManager:1.5.1",
 		"Y-Less/sscanf:v2.13.1",
 		"oscar-broman/strlib"

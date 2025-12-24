@@ -76,7 +76,7 @@ def parse_map(map_input_file: Path) -> Tuple[List[SampBuildingRemoval], List[Sam
             
             for line_number, line in enumerate(file, 1):
                 try:
-                    line = line.strip()
+                    line = re.sub(r'//.*', '', line).strip()
                     if not line:
                         continue
                         
